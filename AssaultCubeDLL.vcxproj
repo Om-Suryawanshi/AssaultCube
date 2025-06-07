@@ -141,15 +141,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\constants.cpp" />
     <ClCompile Include="src\Methods.cpp" />
     <ClCompile Include="src\Methods.h" />
-    <ClCompile Include="src\constant.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
-    <ClCompile Include="src\genCode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\constants.h" />
-    <ClInclude Include="src\genCode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

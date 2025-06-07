@@ -18,24 +18,18 @@
     <ClCompile Include="src\dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\constant.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\genCode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Methods.h">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Methods.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\constants.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\constants.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\genCode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
