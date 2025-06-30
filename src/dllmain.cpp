@@ -5,22 +5,43 @@
 #include "constants.h"
 #include "Methods.h"
 
-void hook() {
-    std::cout << "[+] Hook Initialized - Press any key to exit.\n";
-}
+// Global Methods instance shared across threads
+Methods g_methods;
 
-// Global flag to control aimbot state
+// Global flags and handles
 bool g_aimbotActive = false;
-// Global handle for the aimbot thread
 HANDLE hAimbotThread = nullptr;
 
+bool g_espActive = false;
+HANDLE hEspThread = nullptr;
+
+
 DWORD WINAPI AimbotThread(LPVOID lpParam) {
-    Methods* methods = static_cast<Methods*>(lpParam); // Cast the LPVOID to Methods*
+    Methods* methods = static_cast<Methods*>(lpParam);
     while (g_aimbotActive) {
-        methods->aimbot(); // Call your aimbot logic
-        Sleep(1); // Small delay to prevent 100% CPU usage, adjust as needed
+        methods->aimbot();
+        Sleep(1); // Avoid CPU 100% usage
     }
     return 0;
+}
+
+DWORD WINAPI EspThread(LPVOID lpParam) {
+    HWND hwnd = FindWindowA(NULL, "AssaultCube");
+    if (!hwnd) {
+        std::cout << "[!] ESP: Failed to find AssaultCube window.\n";
+        return 0;
+    }
+
+    while (g_espActive) {
+        g_methods.esp(hwnd);
+        Sleep(5);
+    }
+    return 0;
+}
+
+
+void hook() {
+    std::cout << "[+] Hook Initialized\n";
 }
 
 
@@ -29,29 +50,40 @@ void console() {
     FILE* f;
     freopen_s(&f, "CONOUT$", "w", stdout);
     freopen_s(&f, "CONIN$", "r", stdin);
+
     bool ammoFlag = false;
     bool godFlag = false;
-    std::cout << "[+] Console Initialized\n";
 
-    Methods methods;
+    std::cout << "[+] Console Initialized\n";
+    std::cout << "Type 'help' to see available commands.\n";
 
     while (true) {
         std::string input;
         std::cin >> input;
+
         if (input == "exit") break;
-        if (input == "god") godFlag = methods.godMode(godFlag);
-        if (input == "ammo") ammoFlag = methods.patchAmmo(ammoFlag);
-        if (input == "help") {
-            std::cout << "exit \n god \n ammo \n help" << std::endl;
+        else if (input == "help") {
+            std::cout << "Commands:\n";
+            std::cout << "  help   - Show commands\n";
+            std::cout << "  god    - Toggle God Mode\n";
+            std::cout << "  ammo   - Toggle Unlimited Ammo\n";
+            std::cout << "  aim    - Toggle Aimbot\n";
+            std::cout << "  enemy  - Print enemy info\n";
+            std::cout << "  name   - Print your player name\n";
+            std::cout << "  exit   - Unload the DLL\n";
         }
-        if (input == "debug") {
-            std::cout << "Debugging is not implemented yet." << std::endl;
-		}
-		if (input == "name") methods.printPlayerName();
-        if (input == "aim") {
+        else if (input == "god") {
+            std::cout << "[*] God command received\n";
+            godFlag = g_methods.godMode(godFlag);
+
+        }
+        else if (input == "ammo") {
+            ammoFlag = g_methods.patchAmmo(ammoFlag);
+        }
+        else if (input == "aim") {
             if (!g_aimbotActive) {
                 g_aimbotActive = true;
-                hAimbotThread = CreateThread(nullptr, 0, AimbotThread, &methods, 0, nullptr);
+                hAimbotThread = CreateThread(nullptr, 0, AimbotThread, &g_methods, 0, nullptr);
                 std::cout << "[+] Aimbot ON\n";
             }
             else {
@@ -64,14 +96,40 @@ void console() {
                 std::cout << "[-] Aimbot OFF\n";
             }
         }
-		if (input == "enemy") methods.enemy();
+        else if (input == "esp") {
+             if (!g_espActive) {
+                g_espActive = true;
+                hEspThread = CreateThread(nullptr, 0, EspThread, nullptr, 0, nullptr);
+                std::cout << "[+] ESP ON\n";
+             }
+             else {
+                g_espActive = false;
+                if (hEspThread) {
+                    WaitForSingleObject(hEspThread, INFINITE);
+                    CloseHandle(hEspThread);
+                    hEspThread = nullptr;
+                }
+                std::cout << "[-] ESP OFF\n";
+             }
+        }
+        else if (input == "enemy") {
+            g_methods.enemy();
+        }
+        else if (input == "name") {
+            g_methods.printPlayerName();
+        }
+        else {
+            std::cout << "[!] Unknown command. Type 'help'.\n";
+        }
     }
+
     FreeConsole();
     ExitThread(0);
 }
 
-
-HANDLE hConsoleThread, hHookThread;
+// Thread handles
+HANDLE hConsoleThread = nullptr;
+HANDLE hHookThread = nullptr;
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
     switch (ul_reason_for_call) {

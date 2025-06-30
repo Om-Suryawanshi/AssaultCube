@@ -11,3 +11,8 @@ uintptr_t rotationOffset = 0x40;
 uintptr_t playerHealthOffset = 0xF8;
 uintptr_t playerNameOffset = 0x225;
 uintptr_t playerTeamOffset = 0x32C;
+uintptr_t viewMatrixOffset = 0x101AE8; 
+
+uintptr_t localPlayerAddr = 0;
+uintptr_t healthPatchAddr = exeBaseAddr + 0x29D1F;
+uintptr_t heathreturnAddr = healthPatchAddr + 5;

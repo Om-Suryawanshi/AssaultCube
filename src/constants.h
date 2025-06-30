@@ -12,3 +12,8 @@ extern uintptr_t rotationOffset;
 extern uintptr_t playerHealthOffset;
 extern uintptr_t playerNameOffset;
 extern uintptr_t playerTeamOffset;
+extern uintptr_t viewMatrixOffset;
+
+extern uintptr_t localPlayerAddr;
+extern uintptr_t healthPatchAddr; // Intsn Addr
+extern uintptr_t heathreturnAddr;

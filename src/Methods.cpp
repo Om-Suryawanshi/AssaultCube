@@ -1,10 +1,11 @@
-#pragma once
+﻿#pragma once
 #include <Windows.h>
 #include <iostream>
 #include <conio.h>
 #include "constants.h"
 #include "Methods.h"
 #include <cmath>
+#include <string>
 
 bool Methods::patchAmmo(bool flag) {
     DWORD oldProtect;
@@ -34,7 +35,7 @@ bool Methods::godMode(bool flag) {
     DWORD oldProtect;
     DWORD healthPatchAddr = exeBaseAddr + 0x29D1F;
     BYTE* healthAddr = (BYTE*)healthPatchAddr;
-
+    
     if (!flag) {
         VirtualProtect(healthAddr, 3, PAGE_EXECUTE_READWRITE, &oldProtect);
         healthAddr[0] = 0x90;  // NOP (No Operation) - Prevents health reduction
@@ -55,6 +56,7 @@ bool Methods::godMode(bool flag) {
     }
     return flag;
 }
+
 
 
 void Methods::printPlayerName() {
@@ -168,4 +170,76 @@ void Methods::aimbot() {
 
         //std::cout << "[+] Tracking enemy (Yaw: " << yaw << ", Pitch: " << pitch << ")\n";
     }
+}
+
+bool Methods::WorldToScreen(const Methods::Vec3& pos, Methods::Vec2& screen, float matrix[16], int width, int height) {
+    float clipX = pos.x * matrix[0] + pos.y * matrix[4] + pos.z * matrix[8] + matrix[12];
+    float clipY = pos.x * matrix[1] + pos.y * matrix[5] + pos.z * matrix[9] + matrix[13];
+    float clipW = pos.x * matrix[3] + pos.y * matrix[7] + pos.z * matrix[11] + matrix[15];
+
+    if (clipW < 0.1f) return false;
+
+    float ndcX = clipX / clipW;
+    float ndcY = clipY / clipW;
+
+    screen.x = (width / 2.0f * ndcX) + (width / 2.0f);
+    screen.y = -(height / 2.0f * ndcY) + (height / 2.0f);
+
+    return true;
+}
+
+void Methods::esp(HWND hwnd) {
+    RECT gameRect;
+    if (!GetClientRect(hwnd, &gameRect)) return;
+
+    int width = gameRect.right;
+    int height = gameRect.bottom;
+
+    //std::cout << "Height : " << height << " Width : " << width;
+
+    HDC hdc = GetDC(hwnd);
+    if (!hdc) return;
+
+    uintptr_t localPlayer = *(uintptr_t*)(exeBaseAddr + playerBaseOffset);
+    if (!localPlayer) return;
+
+    Vec3 localPos = *(Vec3*)(localPlayer + 0x4);
+    int localTeam = *(int*)(localPlayer + playerTeamOffset);
+
+    uintptr_t entityList = *(uintptr_t*)(exeBaseAddr + entListBaseOffset);
+    int count = *(int*)(exeBaseAddr + playerCount);
+
+    float* viewMatrix = (float*)(exeBaseAddr + viewMatrixOffset);  // Ensure this offset is correct
+
+    for (int i = 0; i < count; ++i) {
+        uintptr_t entity = *(uintptr_t*)(entityList + i * 4);
+        if (!entity || entity == localPlayer) continue;
+
+        int health = *(int*)(entity + playerHealthOffset);
+        int team = *(int*)(entity + playerTeamOffset);
+        if (health <= 0 || team == localTeam) continue;
+
+        Vec3 enemyPos = *(Vec3*)(entity + 0x4);
+        Vec2 screenPos;
+        if (WorldToScreen(enemyPos, screenPos, viewMatrix, width, height)) {
+            // Draw rectangle at screenPos
+            int boxWidth = 40;
+            int boxHeight = 80;
+
+            int x = static_cast<int>(screenPos.x - boxWidth / 2);
+            int y = static_cast<int>(screenPos.y - boxHeight / 2);
+
+            HPEN pen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0)); // Red color for enemies
+            HGDIOBJ oldPen = SelectObject(hdc, pen);
+            HGDIOBJ oldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH)); // No fill
+
+            Rectangle(hdc, x, y, x + boxWidth, y + boxHeight);
+
+            SelectObject(hdc, oldBrush);
+            SelectObject(hdc, oldPen);
+            DeleteObject(pen);
+        }
+    }
+
+    ReleaseDC(hwnd, hdc);
 }
