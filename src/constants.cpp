@@ -8,9 +8,15 @@ uintptr_t entLoopDistance = 0x4; // how many bytes appart are different entities
 uintptr_t gameState = 0x10F49C;
 uintptr_t eyePos = 0x4;
 uintptr_t rotationOffset = 0x40;
+
+// Player offsets
 uintptr_t playerHealthOffset = 0xF8;
 uintptr_t playerNameOffset = 0x225;
 uintptr_t playerTeamOffset = 0x32C;
+uintptr_t playerAmmoOffset = 0x150;
+uintptr_t playerArmorOffset = 0xFC;
+
+
 uintptr_t viewMatrixOffset = 0x101AE8; 
 
 uintptr_t localPlayerAddr = 0;

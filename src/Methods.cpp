@@ -1,62 +1,32 @@
 ﻿#pragma once
 #include <Windows.h>
 #include <iostream>
-#include <conio.h>
+//#include <conio.h>
 #include "constants.h"
 #include "Methods.h"
 #include <cmath>
 #include <string>
 
-bool Methods::patchAmmo(bool flag) {
-    DWORD oldProtect;
-    DWORD ammoPatchAddr = exeBaseAddr + 0x637E9;
-    BYTE* ammoAddr = (BYTE*)ammoPatchAddr;
 
-    if (!flag) {
-        VirtualProtect(ammoAddr, 2, PAGE_EXECUTE_READWRITE, &oldProtect);
-        ammoAddr[0] = 0x90; //NOP
-        ammoAddr[1] = 0x90; //NOP
-        VirtualProtect(ammoAddr, 2, oldProtect, &oldProtect);
-        std::cout << "[+] Infinite Ammo Activated!" << std::endl;
-        flag = !flag;
-    }
-    else {
-        VirtualProtect(ammoAddr, 2, PAGE_EXECUTE_READWRITE, &oldProtect);
-        ammoAddr[0] = 0xFF;
-        ammoAddr[1] = 0x0E;
-        VirtualProtect(ammoAddr, 2, oldProtect, &oldProtect);
-        flag = !flag;
-        std::cout << "[-] Infinite Ammo Deactivated!" << std::endl;
-    }
-    return flag;
-}
-
-bool Methods::godMode(bool flag) {
-    DWORD oldProtect;
-    DWORD healthPatchAddr = exeBaseAddr + 0x29D1F;
-    BYTE* healthAddr = (BYTE*)healthPatchAddr;
+void Methods::godMode() {
+    DWORD player = *(DWORD*)(exeBaseAddr + playerBaseOffset);
+    if (!player) return;
     
-    if (!flag) {
-        VirtualProtect(healthAddr, 3, PAGE_EXECUTE_READWRITE, &oldProtect);
-        healthAddr[0] = 0x90;  // NOP (No Operation) - Prevents health reduction
-        healthAddr[1] = 0x90;
-        healthAddr[2] = 0x90;
-        VirtualProtect(healthAddr, 3, oldProtect, &oldProtect);
-        std::cout << "[+] God Mode Activated!" << std::endl;
-        flag = !flag;
-    }
-    else {
-        VirtualProtect(healthAddr, 3, PAGE_EXECUTE_READWRITE, &oldProtect);
-        healthAddr[0] = 0x29; 
-        healthAddr[1] = 0x7B;
-        healthAddr[2] = 0x04;
-        VirtualProtect(healthAddr, 3, oldProtect, &oldProtect);
-        std::cout << "[-] God Mode Deactivated!" << std::endl;
-        flag = !flag;
-    }
-    return flag;
-}
+    int* health = (int*)(player + playerHealthOffset);
+    int* ammo = (int*)(player + playerAmmoOffset);
+    int* armor = (int*)(player + playerArmorOffset);
 
+
+    if ((*health) <= 100) {
+        (*health) = 100;
+    }
+    if ((*ammo) <= 20) {
+        (*ammo) = 20;
+    }
+    if ((*armor) <= 50) {
+        (*armor) = 50;
+    }
+}
 
 
 void Methods::printPlayerName() {
@@ -195,8 +165,6 @@ void Methods::esp(HWND hwnd) {
     int width = gameRect.right;
     int height = gameRect.bottom;
 
-    //std::cout << "Height : " << height << " Width : " << width;
-
     HDC hdc = GetDC(hwnd);
     if (!hdc) return;
 
@@ -209,7 +177,7 @@ void Methods::esp(HWND hwnd) {
     uintptr_t entityList = *(uintptr_t*)(exeBaseAddr + entListBaseOffset);
     int count = *(int*)(exeBaseAddr + playerCount);
 
-    float* viewMatrix = (float*)(exeBaseAddr + viewMatrixOffset);  // Ensure this offset is correct
+    float* viewMatrix = (float*)(exeBaseAddr + viewMatrixOffset);
 
     for (int i = 0; i < count; ++i) {
         uintptr_t entity = *(uintptr_t*)(entityList + i * 4);
@@ -222,24 +190,44 @@ void Methods::esp(HWND hwnd) {
         Vec3 enemyPos = *(Vec3*)(entity + 0x4);
         Vec2 screenPos;
         if (WorldToScreen(enemyPos, screenPos, viewMatrix, width, height)) {
-            // Draw rectangle at screenPos
+            // Box setup
             int boxWidth = 40;
             int boxHeight = 80;
 
             int x = static_cast<int>(screenPos.x - boxWidth / 2);
             int y = static_cast<int>(screenPos.y - boxHeight / 2);
 
+            // Draw box
             HPEN pen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0)); // Red color for enemies
             HGDIOBJ oldPen = SelectObject(hdc, pen);
-            HGDIOBJ oldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH)); // No fill
+            HGDIOBJ oldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH));
 
             Rectangle(hdc, x, y, x + boxWidth, y + boxHeight);
 
+            // Draw name (above the box)
+            char name[16] = { 0 };
+            memcpy(name, (void*)(entity + playerNameOffset), 15); 
+            SetTextColor(hdc, RGB(255, 255, 255));
+            SetBkMode(hdc, TRANSPARENT);
+            TextOutA(hdc, x, y - 15, name, strlen(name)); // 15 pixels above the box
+
+            // Draw health bar (below the box)
+            int barMaxWidth = boxWidth;
+            int barHeight = 5;
+            int barX = x;
+            int barY = y + boxHeight + 3;
+
+            int barWidth = static_cast<int>((health / 100.0f) * barMaxWidth);
+            HBRUSH healthBrush = CreateSolidBrush(RGB(0, 255, 0)); // Green health bar
+
+            RECT healthRect = { barX, barY, barX + barWidth, barY + barHeight };
+            FillRect(hdc, &healthRect, healthBrush);
+
+            DeleteObject(healthBrush);
             SelectObject(hdc, oldBrush);
             SelectObject(hdc, oldPen);
             DeleteObject(pen);
         }
     }
-
     ReleaseDC(hwnd, hdc);
 }

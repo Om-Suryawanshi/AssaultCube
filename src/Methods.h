@@ -18,13 +18,11 @@ public:
         float x, y;
     };
 
-    bool patchAmmo(bool flag);
-    bool godMode(bool flag);
+    //bool patchAmmo(bool flag);
+    void godMode();
     void printPlayerName();
     void aimbot();
     void enemy();
-	void InstallHealthHook();
-    void UninstallHealthHook();
 
     //ESP
     bool WorldToScreen(const Methods::Vec3& pos, Methods::Vec2& screen, float matrix[16], int width, int height);

@@ -15,12 +15,15 @@ HANDLE hAimbotThread = nullptr;
 bool g_espActive = false;
 HANDLE hEspThread = nullptr;
 
+bool g_godMode = false;
+HANDLE hGodThread = nullptr;
+
 
 DWORD WINAPI AimbotThread(LPVOID lpParam) {
     Methods* methods = static_cast<Methods*>(lpParam);
     while (g_aimbotActive) {
         methods->aimbot();
-        Sleep(1); // Avoid CPU 100% usage
+        Sleep(1);
     }
     return 0;
 }
@@ -34,15 +37,22 @@ DWORD WINAPI EspThread(LPVOID lpParam) {
 
     while (g_espActive) {
         g_methods.esp(hwnd);
-        Sleep(5);
+        Sleep(1);
     }
     return 0;
 }
 
-
-void hook() {
-    std::cout << "[+] Hook Initialized\n";
+DWORD WINAPI GodThread(LPVOID lpParam) {
+    while (g_godMode) {
+        g_methods.godMode();
+        Sleep(5); 
+    }
+    return 0;
 }
+
+//void hook() {
+//    std::cout << "[+] Hook Initialized\n";
+//}
 
 
 void console() {
@@ -51,8 +61,6 @@ void console() {
     freopen_s(&f, "CONOUT$", "w", stdout);
     freopen_s(&f, "CONIN$", "r", stdin);
 
-    bool ammoFlag = false;
-    bool godFlag = false;
 
     std::cout << "[+] Console Initialized\n";
     std::cout << "Type 'help' to see available commands.\n";
@@ -66,19 +74,27 @@ void console() {
             std::cout << "Commands:\n";
             std::cout << "  help   - Show commands\n";
             std::cout << "  god    - Toggle God Mode\n";
-            std::cout << "  ammo   - Toggle Unlimited Ammo\n";
+            //std::cout << "  ammo   - Toggle Unlimited Ammo\n";
             std::cout << "  aim    - Toggle Aimbot\n";
             std::cout << "  enemy  - Print enemy info\n";
             std::cout << "  name   - Print your player name\n";
             std::cout << "  exit   - Unload the DLL\n";
         }
         else if (input == "god") {
-            std::cout << "[*] God command received\n";
-            godFlag = g_methods.godMode(godFlag);
-
-        }
-        else if (input == "ammo") {
-            ammoFlag = g_methods.patchAmmo(ammoFlag);
+            if (!g_godMode) {
+                g_godMode = true;
+                hGodThread = CreateThread(nullptr, 0, GodThread, nullptr, 0, nullptr);
+                std::cout << "[+] God Mode ON\n";
+            }
+            else {
+                g_godMode = false;
+                std::cout << "[-] God Mode OFF\n";
+                if (hGodThread) {
+                    WaitForSingleObject(hGodThread, INFINITE);
+                    CloseHandle(hGodThread);
+                    hGodThread = nullptr;
+                }
+            }
         }
         else if (input == "aim") {
             if (!g_aimbotActive) {
@@ -129,18 +145,18 @@ void console() {
 
 // Thread handles
 HANDLE hConsoleThread = nullptr;
-HANDLE hHookThread = nullptr;
+//HANDLE hHookThread = nullptr;
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
     switch (ul_reason_for_call) {
     case DLL_PROCESS_ATTACH:
         hConsoleThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)console, nullptr, 0, nullptr);
-        hHookThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)hook, nullptr, 0, nullptr);
+        //hHookThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)hook, nullptr, 0, nullptr);
         break;
     case DLL_PROCESS_DETACH:
         FreeConsole();
         if (hConsoleThread) CloseHandle(hConsoleThread);
-        if (hHookThread) CloseHandle(hHookThread);
+        //if (hHookThread) CloseHandle(hHookThread);
         break;
     }
     return TRUE;
