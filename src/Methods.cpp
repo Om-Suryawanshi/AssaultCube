@@ -231,3 +231,46 @@ void Methods::esp(HWND hwnd) {
     }
     ReleaseDC(hwnd, hdc);
 }
+
+void Methods::recoil(bool flag) {
+    uintptr_t recoilAddr = exeBaseAddr + weaponRecoilOffset;
+    DWORD oldProtect;
+
+    VirtualProtect((LPVOID)recoilAddr, 10, PAGE_EXECUTE_READWRITE, &oldProtect);
+    if (flag) {
+        for (int i = 0; i < 10; i++) {
+            *(BYTE*)(recoilAddr + i) = 0x90;
+        }
+    }
+    else {
+        BYTE originalBytes[10] = {0x50, 0x8D, 0x4C, 0x24, 0x1C, 0x51, 0x8B, 0xCE, 0xFF, 0xD2};
+        for (int i = 0; i < 10; i++) {
+            *(BYTE*)(recoilAddr + i) = originalBytes[i];
+        }
+    }
+    VirtualProtect((LPVOID)recoilAddr, 10, oldProtect, &oldProtect);
+}
+
+void Methods::triggerBot(bool flag) {
+    uintptr_t localPlayer = *(uintptr_t*)(exeBaseAddr + playerBaseOffset);
+    if (!localPlayer) return;
+
+    int localTeam = *(int*)(localPlayer + playerTeamOffset);
+
+    // Call the function to get the crosshair entity
+    uintptr_t targetEnt = GetCrossHairEnt();
+    if (!targetEnt) {
+        *(int*)(localPlayer + playerShootingOffset) = 0; // Stop shooting
+        return;
+    }
+
+    int targetHealth = *(int*)(targetEnt + playerHealthOffset);
+    int targetTeam = *(int*)(targetEnt + playerTeamOffset);
+
+    if (targetHealth > 0 && targetTeam != localTeam) {
+        *(int*)(localPlayer + playerShootingOffset) = 1; // Shoot
+    }
+    else {
+        *(int*)(localPlayer + playerShootingOffset) = 0; // Don't shoot
+    }
+}

@@ -28,6 +28,11 @@ public:
     bool WorldToScreen(const Methods::Vec3& pos, Methods::Vec2& screen, float matrix[16], int width, int height);
     void esp(HWND gameHwnd);
 
+    //Recoil NOP
+    void recoil(bool flag);
+
+    void triggerBot(bool flag);
+
 
 
 private:

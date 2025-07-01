@@ -19,6 +19,18 @@ bool g_godMode = false;
 HANDLE hGodThread = nullptr;
 
 
+bool g_triggerBot = false;
+HANDLE hTriggerThread = nullptr;
+
+DWORD WINAPI TriggerThread(LPVOID) {
+    while (g_triggerBot) {
+        g_methods.triggerBot(g_triggerBot);
+        Sleep(1); // Keep it responsive
+    }
+    return 0;
+}
+
+
 DWORD WINAPI AimbotThread(LPVOID lpParam) {
     Methods* methods = static_cast<Methods*>(lpParam);
     while (g_aimbotActive) {
@@ -50,9 +62,10 @@ DWORD WINAPI GodThread(LPVOID lpParam) {
     return 0;
 }
 
-//void hook() {
-//    std::cout << "[+] Hook Initialized\n";
-//}
+void hook() {
+    InitFunctionPointers();
+    std::cout << "[+] Hook Initialized\n";
+}
 
 
 void console() {
@@ -134,6 +147,29 @@ void console() {
         else if (input == "name") {
             g_methods.printPlayerName();
         }
+        else if (input == "recoil") {
+            static bool recoilOff = false;
+            recoilOff = !recoilOff;
+            g_methods.recoil(recoilOff);
+            std::cout << (recoilOff ? "[+] No Recoil ON\n" : "[-] No Recoil OFF\n");
+        }
+        else if (input == "trigger") {
+            if (!g_triggerBot) {
+                g_triggerBot = true;
+                hTriggerThread = CreateThread(nullptr, 0, TriggerThread, nullptr, 0, nullptr);
+                std::cout << "[+] TriggerBot ON\n";
+            }
+            else {
+                g_triggerBot = false;
+                if (hTriggerThread) {
+                    WaitForSingleObject(hTriggerThread, INFINITE);
+                    CloseHandle(hTriggerThread);
+                    hTriggerThread = nullptr;
+                }
+                std::cout << "[-] TriggerBot OFF\n";
+            }
+        }
+
         else {
             std::cout << "[!] Unknown command. Type 'help'.\n";
         }
@@ -145,13 +181,13 @@ void console() {
 
 // Thread handles
 HANDLE hConsoleThread = nullptr;
-//HANDLE hHookThread = nullptr;
+HANDLE hHookThread = nullptr;
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
     switch (ul_reason_for_call) {
     case DLL_PROCESS_ATTACH:
         hConsoleThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)console, nullptr, 0, nullptr);
-        //hHookThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)hook, nullptr, 0, nullptr);
+        hHookThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)hook, nullptr, 0, nullptr);
         break;
     case DLL_PROCESS_DETACH:
         FreeConsole();
