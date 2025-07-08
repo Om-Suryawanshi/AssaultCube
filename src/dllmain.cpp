@@ -85,13 +85,16 @@ void console() {
         if (input == "exit") break;
         else if (input == "help") {
             std::cout << "Commands:\n";
-            std::cout << "  help   - Show commands\n";
-            std::cout << "  god    - Toggle God Mode\n";
-            //std::cout << "  ammo   - Toggle Unlimited Ammo\n";
-            std::cout << "  aim    - Toggle Aimbot\n";
-            std::cout << "  enemy  - Print enemy info\n";
-            std::cout << "  name   - Print your player name\n";
-            std::cout << "  exit   - Unload the DLL\n";
+            std::cout << "  help    - Show commands\n";
+            std::cout << "  god     - Toggle God Mode\n";
+            std::cout << "  aim     - Toggle Aimbot\n";
+            std::cout << "  enemy   - Print enemy info\n";
+            std::cout << "  name    - Print your player name\n";
+			std::cout << "  recoil  - Toggle No Recoil\n";
+			std::cout << "  esp     - Toggle ESP\n";
+            std::cout << "  trigger - Toggle TriggerBot\n";
+            std::cout << "  exit    - EXIT\n";
+
         }
         else if (input == "god") {
             if (!g_godMode) {
