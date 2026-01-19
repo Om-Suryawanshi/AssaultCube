@@ -12,6 +12,11 @@ A multifunction internal cheat (DLL) for **AssaultCube v1.2.0.2**, offering powe
 
 ---
 
+## Demo
+![Gameplay demo](img/demo.gif)
+
+---
+
 ## 🎮 Game Download
 
 ➡️ Download **AssaultCube v1.2.0.2** here:  
